@@ -4,9 +4,8 @@ use std::{env, io::Error};
 use crossterm::event::{read, Event::{self,Key}, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 mod terminal;
 use terminal::{Position, Size, Terminal};
-
-const NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+mod view;
+use view::View;
 
 #[derive(Copy, Clone, Default)]
 struct Location {
@@ -18,27 +17,23 @@ struct Location {
 pub struct Editor {
     should_quit: bool,
     location: Location,
+    view: View,
 }
 
 impl Editor {
     pub fn run(&mut self){
         Terminal::initialize().unwrap();
+        self.handel_agrs();
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
     }
-    fn darw_welcome_message() -> Result<(),Error>{
-        let mut welcome_message = format!("{NAME} editor -- version {VERSION}");
-        let width = Terminal::size()?.width;
-        let len = welcome_message.len();
-        #[allow(clippy::integer_division)]
-        let padding = (width.saturating_sub(len.try_into().unwrap())) / 2;
 
-        let spaces = " ".repeat(padding.saturating_sub(1));
-        welcome_message = format!("~{spaces}{welcome_message}");
-        welcome_message.truncate(width);
-        Terminal::print(welcome_message)?;
-        Ok(())
+    fn handel_agrs(&mut self){
+        let args: Vec<String> = env::args().collect();
+        if let Some(file_name) = args.get(1) {
+            self.view.load(file_name);
+        }
     }
 
     fn repl(&mut self) -> Result<(), std::io::Error> {
@@ -87,12 +82,6 @@ impl Editor {
         Ok(())
     }
 
-
-
-
-
-
-
     fn evaluate_event(&mut self, event: &Event) ->Result<(), Error> {
         if let Key(KeyEvent {
             code, modifiers,
@@ -126,7 +115,7 @@ impl Editor {
             Terminal::clear_screen()?;
             Terminal::print("Goodbye.\r\n")?;
         } else {
-            Self::draw_rows()?;
+            self.view.render()?;
             Terminal::move_caret_to(Position {
                 col: self.location.x,
                 row: self.location.y,
@@ -134,25 +123,6 @@ impl Editor {
         }
         Terminal::show_caret()?;
         Terminal::execute()?;
-        Ok(())
-    }
-    fn draw_empty_row() -> Result<(), Error> {
-        Terminal::print("~")?;
-        Ok(())
-    }
-    fn draw_rows() -> Result<(), std::io::Error> {
-        let Size { height, .. } = Terminal::size()?;
-        for current_row in 0..height {
-            #[allow(clippy::integer_division)]
-            if current_row == height / 3 {
-                Self::darw_welcome_message()?;
-            } else {
-                Self::draw_empty_row()?;
-            }
-            if current_row.saturating_add(1) < height {
-                print!("\r\n");
-            }
-        }
         Ok(())
     }
 }

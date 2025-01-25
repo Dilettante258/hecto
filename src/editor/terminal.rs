@@ -5,7 +5,6 @@ use crossterm::terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearT
 use crossterm::Command;
 use std::io::{stdout, Write};
 use std::io::Error;
-use core::fmt::Display;
 #[derive(Copy, Clone)]
 pub struct Size {
     pub height: usize,
@@ -50,7 +49,7 @@ impl Terminal {
         Self::queue_command(Show)?;
         Ok(())
     }
-    pub fn print<T: Display>(string: T) -> Result<(), Error> {
+    pub fn print(string: &str) -> Result<(), Error> {
         Self::queue_command(Print(string))?;
         Ok(())
     }
