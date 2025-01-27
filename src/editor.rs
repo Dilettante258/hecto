@@ -1,17 +1,17 @@
-use std::{env, io::Error};
-
 use crossterm::event::{read, Event, KeyEvent, KeyEventKind};
-
-mod terminal;
-use terminal::Terminal;
-mod view;
-use view::View;
-use std::panic::{set_hook,take_hook};
+use std::{
+    env,
+    io::Error,
+    panic::{set_hook, take_hook},
+};
 mod editorcommand;
+mod terminal;
+mod view;
+use terminal::Terminal;
+use view::View;
+
 use editorcommand::EditorCommand;
 
-
-#[derive(Default)]
 pub struct Editor {
     should_quit: bool,
     view: View,
@@ -35,18 +35,14 @@ impl Editor {
             view,
         })
     }
-
-
-    pub fn run(&mut self){
+    pub fn run(&mut self) {
         loop {
             self.refresh_screen();
             if self.should_quit {
                 break;
             }
             match read() {
-                Ok(event) => {
-                    self.evaluate_event(event);
-                }
+                Ok(event) => self.evaluate_event(event),
                 Err(err) => {
                     #[cfg(debug_assertions)]
                     {
@@ -57,19 +53,22 @@ impl Editor {
         }
     }
 
-    
+    // needless_pass_by_value: Event is not huge, so there is not a
+    // performance overhead in passing by value, and pattern matching in this
+    // function would be needlessly complicated if we pass by reference here.
     #[allow(clippy::needless_pass_by_value)]
     fn evaluate_event(&mut self, event: Event) {
+        println!("Event: {event:?}");
         let should_process = match &event {
             Event::Key(KeyEvent { kind, .. }) => kind == &KeyEventKind::Press,
             Event::Resize(_, _) => true,
-            _ => false,
+            _ => false
         };
 
         if should_process {
             match EditorCommand::try_from(event) {
                 Ok(command) => {
-                    if matches!(command, EditorCommand::Quit)  {
+                    if matches!(command, EditorCommand::Quit) {
                         self.should_quit = true;
                     } else {
                         self.view.handle_command(command);
@@ -83,13 +82,11 @@ impl Editor {
                 }
             }
         } else {
-            #[cfg(debug_assertions)]
-            {
-                panic!("Received and discarded unsupported or non-press event.");
-            }
+            // #[cfg(debug_assertions)]
+            // {
+            //     panic!("Received and discarded unsupported or non-press event. {event:?}");
+            // }
         }
-
-
     }
     fn refresh_screen(&mut self) {
         let _ = Terminal::hide_caret();

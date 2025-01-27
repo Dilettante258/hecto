@@ -1,6 +1,8 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use std::convert::TryFrom;
+
 use super::terminal::Size;
+
 pub enum Direction {
     PageUp,
     PageDown,
@@ -16,6 +18,7 @@ pub enum EditorCommand {
     Resize(Size),
     Quit,
 }
+
 impl TryFrom<Event> for EditorCommand {
     type Error = String;
     fn try_from(event: Event) -> Result<Self, Self::Error> {
