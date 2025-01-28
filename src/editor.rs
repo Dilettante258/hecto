@@ -58,7 +58,6 @@ impl Editor {
     // function would be needlessly complicated if we pass by reference here.
     #[allow(clippy::needless_pass_by_value)]
     fn evaluate_event(&mut self, event: Event) {
-        println!("Event: {event:?}");
         let should_process = match &event {
             Event::Key(KeyEvent { kind, .. }) => kind == &KeyEventKind::Press,
             Event::Resize(_, _) => true,
@@ -91,7 +90,7 @@ impl Editor {
     fn refresh_screen(&mut self) {
         let _ = Terminal::hide_caret();
         self.view.render();
-        let _ = Terminal::move_caret_to(self.view.get_position());
+        let _ = Terminal::move_caret_to(self.view.caret_position());
         let _ = Terminal::show_caret();
         let _ = Terminal::execute();
     }

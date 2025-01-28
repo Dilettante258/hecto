@@ -17,12 +17,16 @@ pub struct Position {
     pub col: usize,
     pub row: usize,
 }
-/// Represents the Terminal.
-/// Edge Case for platforms where `usize` < `u16`:
-/// Regardless of the actual size of the Terminal, this representation
-/// only spans over at most `usize::MAX` or `u16::size` rows/columns, whichever is smaller.
-/// Each size returned truncates to min(`usize::MAX`, `u16::MAX`)
-/// And should you attempt to set the caret out of these bounds, it will also be truncated.
+
+impl Position {
+    pub const fn saturating_sub(self, other: Self) -> Self {
+        Self {
+            row: self.row.saturating_sub(other.row),
+            col: self.col.saturating_sub(other.col),
+        }
+    }
+}
+
 pub struct Terminal;
 
 impl Terminal {
