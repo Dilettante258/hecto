@@ -60,8 +60,47 @@ impl View {
             EditorCommand::Resize(size) => self.resize(size),
             EditorCommand::Move(direction) => self.move_text_location(&direction),
             EditorCommand::Quit => {}
+            EditorCommand::Insert(character) => self.insert_char(character),
+            EditorCommand::Delete => self.delete(),
+            EditorCommand::Backspace => self.delete_backward(),
+            EditorCommand::Enter => self.insert_newline(),
         }
     }
+
+    fn insert_char(&mut self, character: char) {
+        let old_len = self.buffer.lines.get(self.text_location.line_index)
+        .map_or(0, Line::grapheme_count);
+        self.buffer.insert_char(character, self.text_location);
+        let new_len = self
+            .buffer
+            .lines
+            .get(self.text_location.line_index)
+            .map_or(0, Line::grapheme_count);
+            let grapheme_delta = new_len.saturating_sub(old_len);
+            if grapheme_delta > 0 {
+                //move right for an added grapheme (should be the regular case)
+                self.move_text_location(&Direction::Right);
+            }
+        self.needs_redraw = true;
+    }
+
+    fn insert_newline(&mut self) {
+        self.buffer.insert_newline(self.text_location);
+        self.move_text_location(&Direction::Right);
+        self.needs_redraw = true;
+    }
+
+    fn delete_backward(&mut self) {
+        if self.text_location.line_index != 0 || self.text_location.grapheme_index != 0 {
+            self.move_text_location(&Direction::Left);
+            self.delete();
+        }
+    }
+    fn delete(&mut self) {
+        self.buffer.delete(self.text_location);
+        self.needs_redraw = true;
+    }
+
     pub fn load(&mut self, file_name: &str) {
         if let Ok(buffer) = Buffer::load(file_name) {
             self.buffer = buffer;
@@ -93,7 +132,9 @@ impl View {
         } else {
             false
         };
-        self.needs_redraw = self.needs_redraw || offset_changed;
+        if offset_changed {
+            self.needs_redraw = true;
+        }
     }
     fn scroll_horizontally(&mut self, to: usize) {
         let Size { width, .. } = self.size;
@@ -106,7 +147,9 @@ impl View {
         } else {
             false
         };
-        self.needs_redraw = self.needs_redraw || offset_changed;
+        if offset_changed {
+            self.needs_redraw = true;
+        }
     }
 
     fn text_location_to_position(&self) -> Position {
@@ -187,7 +230,7 @@ impl View {
     fn move_left(&mut self) {
         if self.text_location.grapheme_index > 0 {
             self.text_location.grapheme_index -= 1;
-        } else {
+        } if self.text_location.line_index > 0 {
             self.move_up(1);
             self.move_to_end_of_line();
         }
