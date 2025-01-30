@@ -74,6 +74,7 @@ pub enum System {
     Resize(Size),
     Quit,
     Dismiss,
+    Search
 }
 impl TryFrom<KeyEvent> for System {
     type Error = String;
@@ -83,8 +84,9 @@ impl TryFrom<KeyEvent> for System {
         } = event;
         if modifiers == KeyModifiers::CONTROL {
             match code {
-                Char('q') => Ok(Self::Quit),
+                Char('q') | Char('c') => Ok(Self::Quit),
                 Char('s') => Ok(Self::Save),
+                Char('f') => Ok(Self::Search),
                 _ => Err(format!("Unsupported CONTROL+{code:?} combination")),
             }
         } else if modifiers == KeyModifiers::NONE && matches!(code, KeyCode::Esc) {
