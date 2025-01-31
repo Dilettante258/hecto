@@ -138,6 +138,7 @@ impl Line {
     }
 
     pub fn insert_char(&mut self, character: char, at: GraphemeIdx) {
+        debug_assert!(at.saturating_sub(1) <= self.grapheme_count());
         if let Some(fragment) = self.fragments.get(at) {
             self.string.insert(fragment.start_byte_idx, character);
         } else {
@@ -151,6 +152,7 @@ impl Line {
     }
 
     pub fn delete(&mut self, at: usize) {
+        debug_assert!(at <= self.grapheme_count());
         if let Some(fragment) = self.fragments.get(at) {
             let start = fragment.start_byte_idx;
             let end = fragment
@@ -184,21 +186,71 @@ impl Line {
         self.fragments
             .iter()
             .position(|fragment| fragment.start_byte_idx >= byte_idx)
-            .map_or(0, |grapheme_idx| grapheme_idx)
+            .map_or_else(
+                || {
+                    #[cfg(debug_assertions)]
+                    {
+                        panic!("Fragment not found for byte index: {byte_idx:?}");
+                    }
+                    #[cfg(not(debug_assertions))]
+                    {
+                        0
+                    }
+                },
+                |grapheme_idx| grapheme_idx,
+            )
     }
 
     fn grapheme_idx_to_byte_idx(&self, grapheme_idx: GraphemeIdx) -> ByteIdx {
-        self.fragments
-            .get(grapheme_idx)
-            .map_or(0, |fragment| fragment.start_byte_idx)
+        debug_assert!(grapheme_idx <= self.grapheme_count());
+        if grapheme_idx == 0 || self.grapheme_count() == 0 {
+            return 0;
+        }
+        self.fragments.get(grapheme_idx).map_or_else(
+            || {
+                #[cfg(debug_assertions)]
+                {
+                    panic!("Fragment not found for grapheme index: {grapheme_idx:?}");
+                }
+                #[cfg(not(debug_assertions))]
+                {
+                    0
+                }
+            },
+            |fragment| fragment.start_byte_idx,
+        )
     }
 
-    pub fn search(&self, query: &str, from_grapheme_idx: GraphemeIdx) -> Option<GraphemeIdx> {
+    pub fn search_forward(&self, query: &str, from_grapheme_idx: GraphemeIdx) -> Option<GraphemeIdx> {
+        debug_assert!(from_grapheme_idx <= self.grapheme_count());
+        if from_grapheme_idx == self.grapheme_count() {
+            return None;
+        }
         let start_byte_idx = self.grapheme_idx_to_byte_idx(from_grapheme_idx);
         self.string
             .get(start_byte_idx..)
             .and_then(|substr| substr.find(query))
             .map(|byte_idx| self.byte_idx_to_grapheme_idx(byte_idx.saturating_add(start_byte_idx)))
+    }
+
+    pub fn search_backward(
+        &self,
+        query: &str,
+        from_grapheme_idx: GraphemeIdx,
+    ) -> Option<GraphemeIdx> {
+        debug_assert!(from_grapheme_idx <= self.grapheme_count());
+        if from_grapheme_idx == 0 {
+            return None;
+        }
+        let end_byte_index = if from_grapheme_idx == self.grapheme_count() {
+            self.string.len()
+        } else {
+            self.grapheme_idx_to_byte_idx(from_grapheme_idx)
+        };
+        self.string
+            .get(..end_byte_index)
+            .and_then(|substr| substr.match_indices(query).last())
+            .map(|(index, _)| self.byte_idx_to_grapheme_idx(index))
     }
 }
 
