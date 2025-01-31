@@ -1,5 +1,5 @@
 use std::io::Error;
-use super::Size;
+use super::super::Size;
 pub trait UIComponent {
     // Marks this UI component as in need of redrawing (or not)
     fn set_needs_redraw(&mut self, value: bool);

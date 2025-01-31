@@ -4,28 +4,21 @@ use std::{
     io::Error,
     panic::{set_hook, take_hook},
 };
+mod annotatedstring;
 mod command;
-mod commandbar;
+mod uicomponents;
 mod documentstatus;
-mod line;
-mod messagebar;
 mod position;
 mod size;
-mod statusbar;
 mod terminal;
-mod uicomponent;
-mod view;
-
-use commandbar::CommandBar;
-use documentstatus::DocumentStatus;
+mod line;
 use line::Line;
-use messagebar::MessageBar;
+use annotatedstring::{AnnotatedString, AnnotationType};
+use uicomponents::{CommandBar,MessageBar,View, StatusBar, UIComponent};
+use documentstatus::DocumentStatus;
 use position::{Col, Position, Row};
 use size::Size;
-use statusbar::StatusBar;
 use terminal::Terminal;
-use uicomponent::UIComponent;
-use view::View;
 use self::command::{
     Command::{self, Edit, Move, System},
     Edit::InsertNewline,
@@ -34,6 +27,7 @@ use self::command::{
 };
 
 pub const NAME: &str = env!("CARGO_PKG_NAME");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const QUIT_TIMES: u8 = 3;
 

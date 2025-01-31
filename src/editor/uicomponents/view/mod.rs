@@ -1,9 +1,10 @@
 use std::{cmp::min, io::Error};
 
-use super::{
-    command::{Edit, Move}, Terminal, uicomponent::UIComponent, DocumentStatus, Position, Size, Line,
-    Col, Row,
+use super::super::{
+    command::{Edit, Move},
+    Col, DocumentStatus, Line, Position, Row, Size, Terminal, NAME, VERSION,
 };
+use super::UIComponent;
 mod buffer;
 use buffer::Buffer;
 mod fileinfo;
@@ -12,17 +13,9 @@ mod location;
 use location::Location;
 mod searchinfo;
 use searchinfo::SearchInfo;
+mod searchdirection;
+use searchdirection::SearchDirection;
 
-
-const NAME: &str = env!("CARGO_PKG_NAME");
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-#[derive(Default, Eq, PartialEq, Clone, Copy)]
-pub enum SearchDirection {
-    #[default]
-    Forward,
-    Backward,
-}
 
 #[derive(Default)]
 pub struct View {
@@ -270,6 +263,7 @@ impl View {
     }
     pub fn exit_search(&mut self) {
         self.search_info = None;
+        self.set_needs_redraw(true);
     }
     pub fn dismiss_search(&mut self) {
         if let Some(search_info) = &self.search_info {
@@ -278,12 +272,14 @@ impl View {
             self.scroll_text_location_into_view(); // ensure the previous location is still visible even if the terminal has been resized during search.
         }
         self.search_info = None;
+        self.set_needs_redraw(true);
     }
     pub fn search(&mut self, query: &str) {
         if let Some(search_info) = &mut self.search_info {
             search_info.query = Some(Line::from(query));
         }
         self.search_in_direction(self.text_location, SearchDirection::default());
+        self.set_needs_redraw(true);
     }
 
     fn get_search_query(&self) -> Option<&Line> {
@@ -357,7 +353,16 @@ impl UIComponent for View {
             if let Some(line) = self.buffer.lines.get(line_idx) {
                 let left = self.scroll_offset.col;
                 let right = self.scroll_offset.col.saturating_add(width);
-                Self::render_line(current_row, &line.get_visible_graphemes(left..right))?;
+                let query = self
+                    .search_info
+                    .as_ref()
+                    .and_then(|search_info| search_info.query.as_deref());
+                let selected_match = (self.text_location.line_idx == line_idx && query.is_some())
+                    .then_some(self.text_location.grapheme_idx);
+                Terminal::print_annotated_row(
+                    current_row,
+                    &line.get_annotated_visible_substr(left..right, query, selected_match),
+                )?;
             } else if current_row == top_third && self.buffer.is_empty() {
                 Self::render_line(current_row, &Self::build_welcome_message(width))?;
             } else {
