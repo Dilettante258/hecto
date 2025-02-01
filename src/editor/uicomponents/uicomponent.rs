@@ -1,5 +1,5 @@
 use std::io::Error;
-use super::super::Size;
+use crate::prelude::*;
 pub trait UIComponent {
     // Marks this UI component as in need of redrawing (or not)
     fn set_needs_redraw(&mut self, value: bool);
@@ -13,7 +13,7 @@ pub trait UIComponent {
     // Updates the size. Needs to be implemented by each component.
     fn set_size(&mut self, size: Size);
     // Draw this component if it's visible and in need of redrawing
-    fn render(&mut self, origin_row: usize) {
+    fn render(&mut self, origin_row: RowIdx) {
         if self.needs_redraw() {
             if let Err(err) = self.draw(origin_row) {
                 #[cfg(debug_assertions)]
@@ -30,5 +30,5 @@ pub trait UIComponent {
         }
     }
     // Method to actually draw the component, must be implemented by each component
-    fn draw(&mut self, origin_row: usize) -> Result<(), Error>;
+    fn draw(&mut self, origin_row: RowIdx) -> Result<(), Error>;
 }

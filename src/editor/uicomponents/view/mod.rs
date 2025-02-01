@@ -1,16 +1,15 @@
 use std::{cmp::min, io::Error};
-
+use crate::editor::RowIdx;
+use crate::prelude::*;
 use super::super::{
     command::{Edit, Move},
-    Col, DocumentStatus, Line, Position, Row, Size, Terminal, NAME, VERSION,
+    DocumentStatus, Line, Terminal,
 };
 use super::UIComponent;
 mod buffer;
 use buffer::Buffer;
 mod fileinfo;
 use fileinfo::FileInfo;
-mod location;
-use location::Location;
 mod searchinfo;
 use searchinfo::SearchInfo;
 mod searchdirection;
@@ -121,7 +120,7 @@ impl View {
         self.scroll_horizontally(col);
     }
     
-    fn scroll_vertically(&mut self, to: Row) {
+    fn scroll_vertically(&mut self, to: RowIdx) {
         let Size { height, .. } = self.size;
         let offset_changed = if to < self.scroll_offset.row {
             self.scroll_offset.row = to;
@@ -136,7 +135,7 @@ impl View {
             self.set_needs_redraw(true);
         }
     }
-    fn scroll_horizontally(&mut self, to: Col) {
+    fn scroll_horizontally(&mut self, to: ColIdx) {
         let Size { width, .. } = self.size;
         let offset_changed = if to < self.scroll_offset.col {
             self.scroll_offset.col = to;
@@ -271,8 +270,7 @@ impl View {
             self.scroll_offset = search_info.prev_scroll_offset;
             self.scroll_text_location_into_view(); // ensure the previous location is still visible even if the terminal has been resized during search.
         }
-        self.search_info = None;
-        self.set_needs_redraw(true);
+        self.exit_search();
     }
     pub fn search(&mut self, query: &str) {
         if let Some(search_info) = &mut self.search_info {
@@ -338,7 +336,7 @@ impl UIComponent for View {
         self.size = size;
         self.scroll_text_location_into_view();
     }
-    fn draw(&mut self, origin_row: usize) -> Result<(), Error> {
+    fn draw(&mut self, origin_row: RowIdx) -> Result<(), Error> {
         let Size { height, width } = self.size;
         let end_y = origin_row.saturating_add(height);
         let top_third = height.div_ceil(3);

@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use crossterm::event::{read, Event, KeyEvent, KeyEventKind};
 use std::{
     env,
@@ -8,16 +9,12 @@ mod annotatedstring;
 mod command;
 mod uicomponents;
 mod documentstatus;
-mod position;
-mod size;
 mod terminal;
 mod line;
 use line::Line;
 use annotatedstring::{AnnotatedString, AnnotationType};
 use uicomponents::{CommandBar,MessageBar,View, StatusBar, UIComponent};
 use documentstatus::DocumentStatus;
-use position::{Col, Position, Row};
-use size::Size;
 use terminal::Terminal;
 use self::command::{
     Command::{self, Edit, Move, System},
