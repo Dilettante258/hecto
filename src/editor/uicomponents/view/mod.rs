@@ -105,11 +105,15 @@ impl View {
     }
 
     pub fn save(&mut self) -> Result<(), Error> {
-        self.buffer.save()
+        self.buffer.save()?;
+        self.set_needs_redraw(true);
+        Ok(())
     }
     
     pub fn save_as(&mut self, file_name: &str) -> Result<(), Error> {
-        self.buffer.save_as(file_name)
+        self.buffer.save_as(file_name)?;
+        self.set_needs_redraw(true);
+        Ok(())
     }
 
     fn scroll_text_location_into_view(&mut self) {
@@ -332,8 +336,13 @@ impl UIComponent for View {
             .as_ref()
             .and_then(|search_info| search_info.query.as_deref());
         let selected_match = query.is_some().then_some(self.text_location);
-        let mut highlighter = Highlighter::new(query, selected_match);
-        for current_row in 0..end_y {
+        let mut highlighter = Highlighter::new(
+            query,
+            selected_match,
+            self.buffer.get_file_info().get_file_type(),
+        );
+
+        for current_row in 0..end_y.saturating_add(scroll_top) {
             self.buffer.highlight(current_row, &mut highlighter); //highlight from the start of the document to the end of the visible area, to ensure all annotations are up to date.
         }
         for current_row in origin_row..end_y {
